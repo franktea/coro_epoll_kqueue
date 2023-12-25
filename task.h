@@ -17,6 +17,7 @@ struct promise_type_base {
     task<T> get_return_object();
     suspend_always initial_suspend() { return {}; }
 
+    // 当前协程运行完毕，在这里回到父协程，即continuation_
     struct final_awaiter {
         bool await_ready() noexcept { return false; }
         void await_resume() noexcept {}
@@ -63,9 +64,13 @@ struct task {
         return handle_.promise().result;
     }
 
-    void await_suspend(coroutine_handle<> waiter) {
+    // 这里是对当前task对象本身调用co_await，说明一定是嵌套的协程，
+    // 当前所在的协程是父协程，即await_suspend参数所代表的协程，
+    // 被co_await的task对象所在的协程为子协程，即当前task.handle_，为子协程。
+    coroutine_handle<> await_suspend(coroutine_handle<> waiter) {
         handle_.promise().continuation_ = waiter;
-        handle_.resume();
+        // waiter所在的协程，即当前协程挂起了，让子协程，即handle_所表示的协程恢复。子协程结束完以后又回到waiter。
+        return handle_;
     }
 
     void resume() {
