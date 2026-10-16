@@ -41,7 +41,7 @@ template<typename T>
 struct promise_type final: promise_type_base<T> {
     T result;
     void return_value(T value) { result = value; }
-    T await_resule() { return result; }
+    T await_resume() { return result; }
     task<T> get_return_object();
 };
 
